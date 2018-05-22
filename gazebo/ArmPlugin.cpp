@@ -135,7 +135,7 @@ void ArmPlugin::Load(physics::ModelPtr _parent, sdf::ElementPtr /*_sdf*/)
 	cameraNode->Init();
 	
 	/*
-	/ TODO - Subscribe to camera topic
+	/ DONE - Subscribe to camera topic
 	/
 	*/
 	
@@ -145,7 +145,7 @@ void ArmPlugin::Load(physics::ModelPtr _parent, sdf::ElementPtr /*_sdf*/)
 	collisionNode->Init();
 		
 	/*
-	/ TODO - Subscribe to prop collision topic
+	/ DONE - Subscribe to prop collision topic
 	/
 	*/
 	
@@ -164,11 +164,14 @@ bool ArmPlugin::createAgent()
 
 			
 	/*
-	/ TODO - Create DQN Agent
+	/ DONE - Create DQN Agent
 	/
 	*/
-	
-	agent = NULL;
+
+	agent = dqnAgent::Create(INPUT_WIDTH, INPUT_HEIGHT, INPUT_CHANNELS, numActions,
+							 OPTIMIZER, LEARNING_RATE, REPLAY_MEMORY, BATCH_SIZE,
+							 GAMMA, EPS_START, EPS_END, EPS_DECAY,
+							 USE_LSTM, LSTM_SIZE, ALLOW_RANDOM, DEBUG_DQN);
 
 	if( !agent )
 	{
