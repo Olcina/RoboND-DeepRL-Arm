@@ -28,15 +28,15 @@
 #define GAMMA 0.9f
 #define EPS_START 0.9f
 #define EPS_END 0.05f
-#define EPS_DECAY 200
+#define EPS_DECAY 80
 
 /*
 / TODO - Tune the following hyperparameters
 /
 */
 
-#define INPUT_WIDTH   512
-#define INPUT_HEIGHT  512
+#define INPUT_WIDTH   64
+#define INPUT_HEIGHT  64
 #define OPTIMIZER "RMSprop"
 #define LEARNING_RATE 0.1f
 #define REPLAY_MEMORY 10000
@@ -50,7 +50,7 @@
 /
 */
 
-#define REWARD_WIN  10.0f
+#define REWARD_WIN  1.0f
 #define REWARD_LOSS -1.0f
 
 // Define Object Names
@@ -67,7 +67,7 @@
 #define ANIMATION_STEPS 1000
 
 // Set Debug Mode
-#define DEBUG true
+#define DEBUG false
 
 // Lock base rotation DOF (Add dof in header file if off)
 #define LOCKBASE true
@@ -151,6 +151,7 @@ void ArmPlugin::Load(physics::ModelPtr _parent, sdf::ElementPtr /*_sdf*/)
 	
 	//collisionSub = None;
 	collisionSub = collisionNode->Subscribe("/gazebo/arm_world/tube/tube_link/my_contact", &ArmPlugin::onCollisionMsg, this);
+	// collisionSub = collisionNode->Subscribe("/gazebo/arm_world/tube/tube_link/my_contact", &ArmPlugin::onCollisionMsg, this);
 	// Listen to the update event. This event is broadcast every simulation iteration.
 	this->updateConnection = event::Events::ConnectWorldUpdateBegin(boost::bind(&ArmPlugin::OnUpdate, this, _1));
 }
@@ -258,8 +259,8 @@ void ArmPlugin::onCollisionMsg(ConstContactsPtr &contacts)
 		if( strcmp(contacts->contact(i).collision2().c_str(), COLLISION_FILTER) == 0 )
 			continue;
 
-		if(DEBUG){std::cout << "ATENTION: Collision between[" << contacts->contact(i).collision1()
-			     << "] and [" << contacts->contact(i).collision2() << "]\n";}
+		// if(true){std::cout << "ATENTION: Collision between collision 1[" << contacts->contact(i).collision1()
+		// 	     << "] and collision2 [" << contacts->contact(i).collision2() << "]\n" ;}
 
 	
 		/*
@@ -271,8 +272,8 @@ void ArmPlugin::onCollisionMsg(ConstContactsPtr &contacts)
 		
 		if (strcmp(contacts->contact(i).collision1().c_str(), COLLISION_ITEM) == 0)
 		{
-			
-			rewardHistory = REWARD_WIN;
+
+			rewardHistory = rewardHistory + REWARD_WIN;
 
 			newReward  = true;
 
@@ -633,9 +634,8 @@ void ArmPlugin::OnUpdate(const common::UpdateInfo& updateInfo)
 				float average_delta = 0.0f;
 				// compute the smoothed moving average of the delta of the distance to the goal
 				average_delta = (average_delta * alpha) + (distDelta * (1.0f - alpha));
-				rewardHistory = average_delta * REWARD_WIN *0.5f;
-				newReward     = true;	
-				// if(DEBUG) {std::cout << "New reward before touching the ground:" << rewardHistory ;}
+				rewardHistory = average_delta * REWARD_WIN;
+				newReward     = true;
 			}
 
 			lastGoalDistance = distGoal;
