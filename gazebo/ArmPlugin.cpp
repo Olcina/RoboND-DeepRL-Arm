@@ -140,7 +140,7 @@ void ArmPlugin::Load(physics::ModelPtr _parent, sdf::ElementPtr /*_sdf*/)
 	*/
 	
 	//cameraSub = None;
-	cameraSub = cameraNode->Subscribe("/gazebo/" WORLD_NAME "/camera/link/camera/image", &ArmPlugin::onCameraMsg, this);
+	cameraSub = cameraNode->Subscribe("/gazebo/arm_world/camera/link/camera/image", &ArmPlugin::onCameraMsg, this);
 	// Create our node for collision detection
 	collisionNode->Init();
 		
@@ -150,7 +150,7 @@ void ArmPlugin::Load(physics::ModelPtr _parent, sdf::ElementPtr /*_sdf*/)
 	*/
 	
 	//collisionSub = None;
-	collisionSub = collisionNode->Subscribe("/gazebo/" WORLD_NAME "/" PROP_NAME "/link/my_contact", &ArmPlugin::onCollisionMsg, this);
+	collisionSub = collisionNode->Subscribe("/gazebo/arm_world/tube/tube_link/my_contact", &ArmPlugin::onCollisionMsg, this);
 	// Listen to the update event. This event is broadcast every simulation iteration.
 	this->updateConnection = event::Events::ConnectWorldUpdateBegin(boost::bind(&ArmPlugin::OnUpdate, this, _1));
 }
@@ -248,7 +248,7 @@ void ArmPlugin::onCameraMsg(ConstImageStampedPtr &_msg)
 // onCollisionMsg
 void ArmPlugin::onCollisionMsg(ConstContactsPtr &contacts)
 {
-	if(DEBUG){printf("collision callback (%u contacts)\n", contacts->contact_size());}
+	// if(DEBUG){printf("collision callback (%u contacts)\n", contacts->contact_size());}
 
 	if( testAnimation )
 		return;
@@ -258,8 +258,8 @@ void ArmPlugin::onCollisionMsg(ConstContactsPtr &contacts)
 		if( strcmp(contacts->contact(i).collision2().c_str(), COLLISION_FILTER) == 0 )
 			continue;
 
-		// if(DEBUG){std::cout << "Collision between[" << contacts->contact(i).collision1()
-		// 	     << "] and [" << contacts->contact(i).collision2() << "]\n";}
+		if(DEBUG){std::cout << "ATENTION: Collision between[" << contacts->contact(i).collision1()
+			     << "] and [" << contacts->contact(i).collision2() << "]\n";}
 
 	
 		/*
@@ -269,9 +269,9 @@ void ArmPlugin::onCollisionMsg(ConstContactsPtr &contacts)
 
 		
 		
-		if (strcmp(contacts->contact(i).collision2().c_str(), COLLISION_ITEM) == 0)
+		if (strcmp(contacts->contact(i).collision1().c_str(), COLLISION_ITEM) == 0)
 		{
-			// if(DEBUG){ "Collision between the objects and the gripper" << contacts->contact(i).collision2();}
+			
 			rewardHistory = REWARD_WIN;
 
 			newReward  = true;
@@ -314,7 +314,7 @@ bool ArmPlugin::updateAgent()
 		return false;
 	}
 
-	if(DEBUG){printf("ArmPlugin - agent selected action %i\n", action);}
+	// if(DEBUG){printf("ArmPlugin - agent selected action %i\n", action);}
 
 
 
@@ -370,7 +370,7 @@ bool ArmPlugin::updateAgent()
 	}
 	float joint = ref[action/2] + actionJointDelta * delta ; 
 
-	if(DEBUG){std::cout << "Joint position in " << ref[action/2]  <<  " changed to" << joint << std::endl;}
+	// if(DEBUG){std::cout << "Joint position in " << ref[action/2]  <<  " changed to" << joint << std::endl;}
 
 	// limit the joint to the specified range
 	if( joint < JOINT_MIN )
@@ -459,7 +459,7 @@ bool ArmPlugin::updateJoints()
 		// update the AI agent when new camera frame is ready
 		episodeFrames++;
 
-		if(DEBUG){printf("episode frame = %i\n", episodeFrames);}
+		// if(DEBUG){printf("episode frame = %i\n", episodeFrames);}
 
 		// reset camera ready flag
 		newState = false;
@@ -587,16 +587,16 @@ void ArmPlugin::OnUpdate(const common::UpdateInfo& updateInfo)
 
 		// get the bounding box for the gripper		
 		const math::Box& gripBBox = gripper->GetBoundingBox();
-		const float groundContact = 0.05f;
+		const float groundContact = 0.00f;
 		
 		/*
 		/ TODO - set appropriate Reward for robot hitting the ground.
 		/
 		*/
 		bool checkGroundContact = false;
-	    if(DEBUG){
-			std::cout << "gripBBox.min.z= " << gripBBox.min.z << std::endl;
-		}
+	    // if(DEBUG){
+		// 	std::cout << "gripBBox.min.z= " << gripBBox.min.z << std::endl;
+		// }
 		if (gripBBox.min.z <= groundContact) {
 			checkGroundContact = true;
 		}
@@ -635,7 +635,7 @@ void ArmPlugin::OnUpdate(const common::UpdateInfo& updateInfo)
 				average_delta = (average_delta * alpha) + (distDelta * (1.0f - alpha));
 				rewardHistory = average_delta * REWARD_WIN *0.5f;
 				newReward     = true;	
-				if(DEBUG) {std::cout << "New reward before touching the ground:" << rewardHistory ;}
+				// if(DEBUG) {std::cout << "New reward before touching the ground:" << rewardHistory ;}
 			}
 
 			lastGoalDistance = distGoal;
