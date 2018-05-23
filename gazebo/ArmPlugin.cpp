@@ -37,8 +37,8 @@
 
 #define INPUT_WIDTH   512
 #define INPUT_HEIGHT  512
-#define OPTIMIZER "None"
-#define LEARNING_RATE 0.0f
+#define OPTIMIZER "RMSprop"
+#define LEARNING_RATE 0.1f
 #define REPLAY_MEMORY 10000
 #define BATCH_SIZE 8
 #define USE_LSTM false
@@ -67,7 +67,7 @@
 #define ANIMATION_STEPS 1000
 
 // Set Debug Mode
-#define DEBUG false
+#define DEBUG true
 
 // Lock base rotation DOF (Add dof in header file if off)
 #define LOCKBASE true
@@ -168,7 +168,7 @@ bool ArmPlugin::createAgent()
 	/
 	*/
 
-	agent = dqnAgent::Create(INPUT_WIDTH, INPUT_HEIGHT, INPUT_CHANNELS, numActions,
+	agent = dqnAgent::Create(INPUT_WIDTH, INPUT_HEIGHT, INPUT_CHANNELS, 3,
 							 OPTIMIZER, LEARNING_RATE, REPLAY_MEMORY, BATCH_SIZE,
 							 GAMMA, EPS_START, EPS_END, EPS_DECAY,
 							 USE_LSTM, LSTM_SIZE, ALLOW_RANDOM, DEBUG_DQN);
@@ -248,7 +248,7 @@ void ArmPlugin::onCameraMsg(ConstImageStampedPtr &_msg)
 // onCollisionMsg
 void ArmPlugin::onCollisionMsg(ConstContactsPtr &contacts)
 {
-	//if(DEBUG){printf("collision callback (%u contacts)\n", contacts->contact_size());}
+	if(DEBUG){printf("collision callback (%u contacts)\n", contacts->contact_size());}
 
 	if( testAnimation )
 		return;
@@ -258,8 +258,8 @@ void ArmPlugin::onCollisionMsg(ConstContactsPtr &contacts)
 		if( strcmp(contacts->contact(i).collision2().c_str(), COLLISION_FILTER) == 0 )
 			continue;
 
-		if(DEBUG){std::cout << "Collision between[" << contacts->contact(i).collision1()
-			     << "] and [" << contacts->contact(i).collision2() << "]\n";}
+		// if(DEBUG){std::cout << "Collision between[" << contacts->contact(i).collision1()
+		// 	     << "] and [" << contacts->contact(i).collision2() << "]\n";}
 
 	
 		/*
@@ -271,6 +271,7 @@ void ArmPlugin::onCollisionMsg(ConstContactsPtr &contacts)
 		
 		if (strcmp(contacts->contact(i).collision2().c_str(), COLLISION_ITEM) == 0)
 		{
+			// if(DEBUG){ "Collision between the objects and the gripper" << contacts->contact(i).collision2();}
 			rewardHistory = REWARD_WIN;
 
 			newReward  = true;
@@ -359,15 +360,17 @@ bool ArmPlugin::updateAgent()
 	/
 	*/
 	// DONE - Set joint position based on whether action is even or odd.
+	float delta = 0.0f;
 	if (action % 2 == 0)
 	{
-		delta = 1.0f
+		delta = 1.0f;
 	}
 	else {
-		delta = -1.0f
+		delta = -1.0f;
 	}
-	 
 	float joint = ref[action/2] + actionJointDelta * delta ; 
+
+	if(DEBUG){std::cout << "Joint position in " << ref[action/2]  <<  " changed to" << joint << std::endl;}
 
 	// limit the joint to the specified range
 	if( joint < JOINT_MIN )
@@ -590,8 +593,12 @@ void ArmPlugin::OnUpdate(const common::UpdateInfo& updateInfo)
 		/ TODO - set appropriate Reward for robot hitting the ground.
 		/
 		*/
+		bool checkGroundContact = false;
+	    if(DEBUG){
+			std::cout << "gripBBox.min.z= " << gripBBox.min.z << std::endl;
+		}
 		if (gripBBox.min.z <= groundContact) {
-			bool checkGroundContact = true;
+			checkGroundContact = true;
 		}
 		
 		
@@ -623,11 +630,12 @@ void ArmPlugin::OnUpdate(const common::UpdateInfo& updateInfo)
 			{
 				const float distDelta  = lastGoalDistance - distGoal;
 				const float alpha = 0.5f;
-
+				float average_delta = 0.0f;
 				// compute the smoothed moving average of the delta of the distance to the goal
 				average_delta = (average_delta * alpha) + (distDelta * (1.0f - alpha));
 				rewardHistory = average_delta * REWARD_WIN *0.5f;
 				newReward     = true;	
+				if(DEBUG) {std::cout << "New reward before touching the ground:" << rewardHistory ;}
 			}
 
 			lastGoalDistance = distGoal;
